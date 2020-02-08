@@ -1,0 +1,107 @@
+{
+  "blocks": [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "What did *you* think of lunch? (Poll from <@UTnotreal>)"
+      }
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": ":+1: Yeah, that was good"
+      },
+      "accessory": {
+        "type": "button",
+        "text": {
+          "type": "plain_text",
+          "emoji": true,
+          "text": "Liked it"
+        },
+        "value": "good"
+      }
+    },
+    {
+      "type": "context", "elements": [
+
+            {
+          "type": "plain_text",
+          "emoji": true,
+          "text": "3 thumbs up"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": ":no_mouth:: Meh"
+      },
+      "accessory": {
+        "type": "button",
+        "text": {
+          "type": "plain_text",
+          "emoji": true,
+          "text": "Whatever"
+        },
+        "value": "meh"
+      }
+    },
+    {
+      "type": "context", "elements": [
+        {
+          "type": "plain_text",
+          "emoji": true,
+          "text": "2 votes"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": ":-1: Should have found a food truck."
+      },
+      "accessory": {
+        "type": "button",
+        "text": {
+          "type": "plain_text",
+          "emoji": true,
+          "text": "Disliked"
+        },
+        "value": "bad"
+      }
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "No votes"
+        }
+      ]
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "emoji": true,
+            "text": "Anonymously comment"
+          },
+          "value": "feedback"
+        }
+      ]
+    }
+  ]
+}

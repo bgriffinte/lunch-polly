@@ -1,0 +1,9 @@
+
+http_x_slack_request_timestamp: 1581034561
+http_user_agent: Slackbot 1.0 (+https://api.slack.com/robots)
+http_x_slack_signature: v0=24bb1ebhiddenhiddenhiddenf4d935ffd3911d7ba27a1d4a416a34b052c486a
+http_accept: application/json,*/*
+query_string: 
+http_host: s.example.com
+http_accept_encoding: gzip,deflate
+token=vyhiddenhiddenhiddenXMKH&team_id=TThiddenQ&team_domain=acmelunch&channel_id=CThiddenX&channel_name=midday&user_id=UTnotreal&user_name=hello&command=%2Flunchbot&text=help&response_url=https%3A%2F%2Fhooks.slack.com%2Fcommands%2FTThiddenQ%2F942642176583%2F57mhiddehiddehiddenuxzTz&trigger_id=929311612345.123456831670.57854fhiddenhiddenhiddenhidden5b

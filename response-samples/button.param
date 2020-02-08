@@ -1,0 +1,175 @@
+JSON {"type":"block_actions","team":{"id":"TThiddenQ","domain":"acmelunch"},"user":{"id":"UTnotreal","username":"hello","name":"hello","team_id":"TThiddenQ"},"api_app_id":"AThiddenB","token":"vyhiddenhiddenhiddenXMKH","container":{"type":"message","message_ts":"1581012345.123450","channel_id":"CThiddenX","is_ephemeral":false},"trigger_id":"942805012345.123456831670.5670decc61aehidden8hiddenba06933","channel":{"id":"CThiddenX","name":"midday"},"message":{"type":"message","subtype":"bot_message","text":"This content can't be displayed.","ts":"1581012345.123450","bot_id":"BThiddenJ","blocks":[{"type":"section","block_id":"FQtXu","text":{"type":"mrkdwn","text":"What did *you* think of [[MEAL]]? (Poll from <@UTnotreal>)","verbatim":false}},{"type":"divider","block_id":"0oRlL"},{"type":"section","block_id":"b0e","text":{"type":"mrkdwn","text":":+1: Oh yeah, that was good","verbatim":false},"accessory":{"type":"button","action_id":"v:yes","text":{"type":"plain_text","text":"Liked it","emoji":true},"value":"good"}},{"type":"context","block_id":"+ueGu","elements":[{"type":"plain_text","text":"3 thumbs up","emoji":true}]},{"type":"section","block_id":"4gBVx","text":{"type":"mrkdwn","text":":no_mouth:: Meh","verbatim":false},"accessory":{"type":"button","action_id":"v:meh","text":{"type":"plain_text","text":"Whatever","emoji":true},"value":"meh"}},{"type":"context","block_id":"C5F","elements":[{"type":"plain_text","text":"2 votes","emoji":true}]},{"type":"section","block_id":"BiF","text":{"type":"mrkdwn","text":":-1: Should have found a food truck.","verbatim":false},"accessory":{"type":"button","action_id":"v:no","text":{"type":"plain_text","text":"Disliked","emoji":true},"value":"bad"}},{"type":"context","block_id":"f7\/QG","elements":[{"type":"mrkdwn","text":"No votes","verbatim":false}]},{"type":"divider","block_id":"\/qLW"},{"type":"actions","block_id":"2A4F","elements":[{"type":"button","action_id":"\/WSHm","text":{"type":"plain_text","text":"Anonymously comment","emoji":true},"value":"feedback"}]}]},"response_url":"https:\/\/hooks.slack.com\/actions\/TThiddenQ\/943123412345\/toChiddehiddehiddendE1GS","actions":[{"action_id":"v:meh","block_id":"4gBVx","text":{"type":"plain_text","text":"Whatever","emoji":true},"value":"meh","type":"button","action_ts":"1581028945.622367"}]}
+PAYLOAD: $VAR1 = {
+          'api_app_id' => 'AThiddenB',
+          'response_url' => 'https://hooks.slack.com/actions/TThiddenQ/943123412345/toChiddehiddehiddendE1GS',
+          'user' => {
+                      'username' => 'hello',
+                      'id' => 'UTnotreal',
+                      'team_id' => 'TThiddenQ',
+                      'name' => 'hello'
+                    },
+          'type' => 'block_actions',
+          'trigger_id' => '942805012345.123456831670.5670decc61aehidden8hiddenba06933',
+          'message' => {
+                         'text' => 'This content can\'t be displayed.',
+                         'bot_id' => 'BThiddenJ',
+                         'ts' => '1581012345.123450',
+                         'blocks' => [
+                                       {
+                                         'text' => {
+                                                     'verbatim' => bless( do{\(my $o = 0)}, 'JSON::XS::Boolean' ),
+                                                     'text' => 'What did *you* think of [[MEAL]]? (Poll from <@UTnotreal>)',
+                                                     'type' => 'mrkdwn'
+                                                   },
+                                         'block_id' => 'FQtXu',
+                                         'type' => 'section'
+                                       },
+                                       {
+                                         'block_id' => '0oRlL',
+                                         'type' => 'divider'
+                                       },
+                                       {
+                                         'accessory' => {
+                                                          'value' => 'good',
+                                                          'text' => {
+                                                                      'type' => 'plain_text',
+                                                                      'text' => 'Liked it',
+                                                                      'emoji' => bless( do{\(my $o = 1)}, 'JSON::XS::Boolean' )
+                                                                    },
+                                                          'type' => 'button',
+                                                          'action_id' => 'v:yes'
+                                                        },
+                                         'block_id' => 'b0e',
+                                         'type' => 'section',
+                                         'text' => {
+                                                     'type' => 'mrkdwn',
+                                                     'text' => ':+1: Oh yeah, that was good',
+                                                     'verbatim' => $VAR1->{'message'}{'blocks'}[0]{'text'}{'verbatim'}
+                                                   }
+                                       },
+                                       {
+                                         'block_id' => '+ueGu',
+                                         'type' => 'context',
+                                         'elements' => [
+                                                         {
+                                                           'type' => 'plain_text',
+                                                           'emoji' => $VAR1->{'message'}{'blocks'}[2]{'accessory'}{'text'}{'emoji'},
+                                                           'text' => '3 thumbs up'
+                                                         }
+                                                       ]
+                                       },
+                                       {
+                                         'text' => {
+                                                     'text' => ':no_mouth:: Meh',
+                                                     'verbatim' => $VAR1->{'message'}{'blocks'}[0]{'text'}{'verbatim'},
+                                                     'type' => 'mrkdwn'
+                                                   },
+                                         'block_id' => '4gBVx',
+                                         'type' => 'section',
+                                         'accessory' => {
+                                                          'action_id' => 'v:meh',
+                                                          'type' => 'button',
+                                                          'text' => {
+                                                                      'text' => 'Whatever',
+                                                                      'emoji' => $VAR1->{'message'}{'blocks'}[2]{'accessory'}{'text'}{'emoji'},
+                                                                      'type' => 'plain_text'
+                                                                    },
+                                                          'value' => 'meh'
+                                                        }
+                                       },
+                                       {
+                                         'elements' => [
+                                                         {
+                                                           'type' => 'plain_text',
+                                                           'emoji' => $VAR1->{'message'}{'blocks'}[2]{'accessory'}{'text'}{'emoji'},
+                                                           'text' => '2 votes'
+                                                         }
+                                                       ],
+                                         'type' => 'context',
+                                         'block_id' => 'C5F'
+                                       },
+                                       {
+                                         'type' => 'section',
+                                         'block_id' => 'BiF',
+                                         'accessory' => {
+                                                          'value' => 'bad',
+                                                          'text' => {
+                                                                      'text' => 'Disliked',
+                                                                      'emoji' => $VAR1->{'message'}{'blocks'}[2]{'accessory'}{'text'}{'emoji'},
+                                                                      'type' => 'plain_text'
+                                                                    },
+                                                          'action_id' => 'v:no',
+                                                          'type' => 'button'
+                                                        },
+                                         'text' => {
+                                                     'type' => 'mrkdwn',
+                                                     'verbatim' => $VAR1->{'message'}{'blocks'}[0]{'text'}{'verbatim'},
+                                                     'text' => ':-1: Should have found a food truck.'
+                                                   }
+                                       },
+                                       {
+                                         'type' => 'context',
+                                         'block_id' => 'f7/QG',
+                                         'elements' => [
+                                                         {
+                                                           'type' => 'mrkdwn',
+                                                           'verbatim' => $VAR1->{'message'}{'blocks'}[0]{'text'}{'verbatim'},
+                                                           'text' => 'No votes'
+                                                         }
+                                                       ]
+                                       },
+                                       {
+                                         'block_id' => '/qLW',
+                                         'type' => 'divider'
+                                       },
+                                       {
+                                         'block_id' => '2A4F',
+                                         'type' => 'actions',
+                                         'elements' => [
+                                                         {
+                                                           'type' => 'button',
+                                                           'action_id' => '/WSHm',
+                                                           'text' => {
+                                                                       'emoji' => $VAR1->{'message'}{'blocks'}[2]{'accessory'}{'text'}{'emoji'},
+                                                                       'text' => 'Anonymously comment',
+                                                                       'type' => 'plain_text'
+                                                                     },
+                                                           'value' => 'feedback'
+                                                         }
+                                                       ]
+                                       }
+                                     ],
+                         'type' => 'message',
+                         'subtype' => 'bot_message'
+                       },
+          'token' => 'vyhiddenhiddenhiddenXMKH',
+          'actions' => [
+                         {
+                           'block_id' => '4gBVx',
+                           'type' => 'button',
+                           'action_id' => 'v:meh',
+                           'value' => 'meh',
+                           'text' => {
+                                       'text' => 'Whatever',
+                                       'emoji' => $VAR1->{'message'}{'blocks'}[2]{'accessory'}{'text'}{'emoji'},
+                                       'type' => 'plain_text'
+                                     },
+                           'action_ts' => '1581028945.622367'
+                         }
+                       ],
+          'container' => {
+                           'type' => 'message',
+                           'is_ephemeral' => $VAR1->{'message'}{'blocks'}[0]{'text'}{'verbatim'},
+                           'channel_id' => 'CThiddenX',
+                           'message_ts' => '1581012345.123450'
+                         },
+          'channel' => {
+                         'name' => 'midday',
+                         'id' => 'CThiddenX'
+                       },
+          'team' => {
+                      'domain' => 'acmelunch',
+                      'id' => 'TThiddenQ'
+                    }
+        };
+

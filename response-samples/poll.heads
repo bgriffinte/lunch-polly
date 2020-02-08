@@ -1,0 +1,20 @@
+HTTP/1.1 100 Continue
+
+HTTP/1.1 200 OK
+Content-Type: text/html
+Transfer-Encoding: chunked
+Connection: keep-alive
+Date: Thu, 06 Feb 2020 22:24:57 GMT
+Server: Apache
+Vary: Accept-Encoding
+X-Slack-Backend: h
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+Referrer-Policy: no-referrer
+X-Frame-Options: SAMEORIGIN
+Access-Control-Allow-Origin: *
+X-Via: haproxy-www-1tez
+X-Cache: Miss from cloudfront
+Via: 1.1 be2bc6f8hiddenehidden48a50a29433.cloudfront.net (CloudFront)
+X-Amz-Cf-Pop: EWR52-C4
+X-Amz-Cf-Id: MjV3KXyDle_jM71rvfu4qhiddenchiddenaMm2yb4tF4MpMDFpapnA==
+

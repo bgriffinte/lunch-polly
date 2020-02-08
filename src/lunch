@@ -1,0 +1,591 @@
+#!/usr/bin/perl -T
+# Feb 6 2020 for ThousandEyes Hackday
+use strict;
+use warnings;
+use JSON;
+use Data::Dumper;       # for DEBUG
+use vars qw( %heads %safe $post $pollfile $payload $polldata );
+
+$pollfile = 'channel.vote.block';
+$polldata = 'data.d';			# directory of files, one per poll
+
+$\ = "\r\n";		# default output record terminator
+
+
+parseheaders();
+
+# example with all params
+#            status default 200,  ctype default application/json, body don't default.
+# sendout( { status => 400, "content-type" => "text/plain", body => "Lunch on me" } );
+
+if (exists($safe{text})) {
+  # all of these actions, if triggered, will exit not return
+
+  if ($safe{text} =~ /^\s*help/i)             { sendout( { body => help() } ); }
+  if ($safe{text} =~ /^\s*new/i )             { sendout( { body => new_poll() } ); }
+
+  # match "vote", "v:", "vot:", etc, but not "toe" or the like as would be the
+  # case with /[vote:]*/
+  # payloads use votes like "v:yes" and "v:no"
+  my $vote = qr/^\s*(?:v(?:o(?:t(?:e)?)?)?:?)?/i;
+  if ($safe{text} =~ /$vote\s*(like|yes|[+])/i  ) { vote("yes"); }
+  if ($safe{text} =~ /$vote\s*(dislike|no|-)/i  ) { vote("no"); }
+  if ($safe{text} =~ /$vote\s*(whatever|meh|=)/i) { vote("meh"); }
+
+  if ($safe{text} =~ /^\s*(comment)/i)        { comment(); }
+
+}
+
+# have a payload (so it's a call back), but don't know what. Just return "accepted"
+if ($safe{"have payload"}) { boring_response(); }
+
+# so a failsafe fall back
+sendout( { body => askforhelp() } );
+
+
+#######################################
+
+sub askforhelp {
+  return mkephemeral(escapeforjson(
+     "Sorry, didn't get that. Try `/lunchbot help` for usage."
+    ));
+}
+
+sub help {
+  return mkephemeral(escapeforjson(
+     "Lunchbot accepts a few types of interactions.\n" .
+     " * `/lunchbot help` shows this message\n" .
+     " * `/lunchbot new [ MEALTYPE ]` creates a new meal poll, defaulting to lunch\n" .
+     " * `/lunchbot vote { like | yes | + }` votes on the most recent poll for the *liked it* option\n" .
+     " * `/lunchbot vote { dislike | no | - }` votes on the most recent poll for the *disliked it* option\n" .
+     " * `/lunchbot vote { meh | whatever | = }` votes on the most recent poll for the *meh* option\n" .
+     " * `/lunchbot comment { commentary }` attaches an anonynous comment to the most recent poll\n"
+    ));
+}
+
+sub vote {
+  my $v = shift;
+  my $message;
+  find_poll();
+
+  my $key = "vote_" . $safe{"user_id"};
+  if (exists($safe{$key})) {
+    sendout( { body => mkephemeral(escapeforjson( 'No double voting, <@' . $safe{"user_id"} .'>' )) } );
+  }
+
+  if ($v =~ /(yes)/) { $v = $1; $message = 'Great, got your "liked it" vote'; }
+  if ($v =~ /(no)/ ) { $v = $1; $message = 'Marked down your "disliked it" vote'; }
+  if ($v =~ /(meh)/) { $v = $1; $message = 'Noted your vote'; }
+
+  if($message) { 
+    $safe{$v} ++;
+    $safe{$key} = $v;
+    $message .= " (now $safe{$key} for that option)";   # for DEBUG
+  } else {
+    $message = "I am confused by that vote."
+  }
+  update_votes();
+  sendout( { body => mkephemeral(escapeforjson( $message )) } );
+}
+
+sub comment {
+  my $c = $safe{text};
+  $c =~ s/^\s*c(omment\w*)?:?\s*//;
+  find_poll();
+
+  if($c =~ /\S/) {
+    # comment-magic-value
+    my $key = "comment_" . $safe{"user_id"};
+    $safe{$key} = $c;
+    update_votes();
+  }
+  sendout( { body => mkephemeral(escapeforjson( "Recorded your comment: $c" )) } );
+}
+
+
+sub new_poll {
+  $_ = $safe{text};
+  my $meal = "lunch";
+  s/^\s*n(ew)?:?\s*//;
+
+  if (/^(\w+(?:[-\s]?\w+)(?:[-\s]?\w+))/) {
+    $meal = $1;
+  }
+
+  my $poll = 'Yikes, poll generation error';
+  if(open(POLL, '<', $pollfile)) {
+    $poll = '';
+    while(<POLL>) { $poll .= $_; }
+    close POLL;
+  }
+  # not a full template language
+  $poll =~ s/\s+/ /g;
+  $poll =~ s/\[\[MEAL\]\]/$meal/g;
+
+  $poll =~ s/\[\[COMMENTS\]\]//g;
+
+  my $tmp = wording("yes", 0);
+  $poll =~ s/\[\[YES_VOTES\]\]/$tmp/g;
+
+  $tmp = wording("no", 0);
+  $poll =~ s/\[\[NO_VOTES\]\]/$tmp/g;
+
+  $tmp = wording("meh", 0);
+  $poll =~ s/\[\[MEH_VOTES\]\]/$tmp/g;
+  
+  start_poll($meal);
+
+  return sendout({ body => $poll });
+}
+
+# find and parse most recent team.channel.time poll file
+sub find_poll {
+  my $pbase;
+  my $pfile;
+  my @candidates;
+
+  $pbase = poll_base_name();
+
+  if(!opendir(DATAD, $polldata)) {
+    sendout( { body => mkephemeral(escapeforjson("Not finding any polls.")) });
+  }
+  while( defined ($_ = readdir(DATAD)) ) {
+    # $_ is tainted
+    if (0 == index($_ , $pbase) and /^(\w+\.\w+\.\d+)$/) {
+      # matching prefix
+      push(@candidates, $1);	# untainted
+    }
+  }
+  closedir(DATAD);
+
+  if(@candidates == 0) {
+    sendout( { body => mkephemeral(escapeforjson("Not finding that poll.")) });
+  }
+
+  # find oldest, defined as the first in a reverse sort
+  $pfile = (sort { $b cmp $a } @candidates,)[0];
+
+  # todo: delete old polls
+
+  $safe{"poll file"} = "$polldata/$pfile";
+  if(!open(DATAF, '<', $safe{"poll file"})) {
+    sendout( { body => mkephemeral(escapeforjson("Cannot load that poll.")) });
+  }
+  $post = '';
+  while(<DATAF>) { $post .= $_; }
+  close DATAF;
+
+  parse_post();
+}
+
+sub update_votes {
+  my $file = $safe{"poll file"};
+  my $lock = $file . ".LOCK";
+  my $tries = 0;
+
+  while( 1 ) {
+    $tries ++;
+    if( mkdir($lock) ) {
+      last;
+    }
+    if($tries > 10 ) {
+      sendout( { body => mkephemeral(escapeforjson("Cannot get lock.")) });
+    }
+    sleep 1;
+  }
+
+  # also update in start_poll()
+  my $pdata = '&';	# http form data style, but with lead/trail ampersand
+  $pdata .= 'channel_id=' . $safe{"channel_id"} . '&';
+  $pdata .= 'poll_user_id=' . $safe{"poll_user_id"} . '&';
+  $pdata .= 'meal=' . encode($safe{"meal"}) . '&';
+  $pdata .= 'yes=' . $safe{"yes"} . '&';
+  $pdata .= 'meh=' . $safe{"meh"} . '&';
+  $pdata .= 'no=' . $safe{"no"} . '&';
+  $pdata .= 'timestamp=' . $safe{"timestamp"} . '&';	# set on call back
+  $pdata .= 'response_url=' . encode($safe{"response_url"}) . '&';
+  $pdata .= 'token=' . $safe{"response_url"} . '&';
+  
+  for my $key (keys(%safe)) {
+    if($key =~ /^vote_U/) {
+      $pdata .= "$key=$safe{$key}&";
+    } elsif ($key =~ /^comment_U/) {
+      # percent encode!
+      my $value = encode($safe{$key});
+
+      $pdata .= "$key=$value&";
+    }
+  }
+
+  if(!open(UPDATE, ">", $file)) {
+    sendout( { body => mkephemeral(escapeforjson("Polling closed now.")) });
+    rmdir($lock);
+  }
+  print UPDATE $pdata;
+  close UPDATE;
+  rmdir($lock);
+
+  show_updates();
+}
+
+# call curl (lazy way) to post an update to the poll post
+sub show_updates {
+  my $poll = '';
+
+  # read in the blank template
+  if(open(POLL, '<', $pollfile)) {
+    while(<POLL>) { $poll .= $_; }
+    close POLL;
+  }
+
+  # not a full template language
+  $poll =~ s/\s+/ /g;
+  $poll =~ s/\[\[MEAL\]\]/$safe{"meal"}/g;
+
+  my $comments = "";
+  for my $key (sort {$a cmp $b} (grep {/^comment_U/} (keys %safe))) {
+    $comments .= "\n* " . $safe{$key};
+  }
+
+  $poll =~ s/\[\[COMMENTS\]\]/$comments/g;
+
+  my $tmp = wording("yes", $safe{"yes"});
+  $poll =~ s/\[\[YES_VOTES\]\]/$tmp/g;
+
+  $tmp = wording("no", $safe{"no"});
+  $poll =~ s/\[\[NO_VOTES\]\]/$tmp/g;
+
+  $tmp = wording("meh", $safe{"meh"});
+  $poll =~ s/\[\[MEH_VOTES\]\]/$tmp/g;
+  
+  my $update_args = qq("ts": $safe{"timestamp"}, ).
+                    qq("token": "$safe{"token"}", ).
+		    qq("channel": "$safe{"channel_id"}",); 
+  # put at start
+  $poll =~ s/{/{ $update_args/; 
+  $poll =~ s/}/}/; 			# no-op to make { } counters happy
+
+  my $posttmp = "$polldata/curl-$$.tmp";
+  if(open(CURL_POST, ">", $posttmp)) {
+    print CURL_POST $poll;
+    close CURL_POST;
+    
+    # taint-mode safety
+    delete @ENV{"IFS", "CDPATH", "ENV", "BASH_ENV"};
+    $ENV{PATH} = '/usr/local/bin:/usr/bin:/bin';
+
+    my $curl_out = qx(curl -X POST --data \@$posttmp $safe{"response_url"});
+    # unlink $posttmp;
+  }
+}
+
+sub start_poll {
+  my $meal = shift;
+  my $now = time();
+  my $pdata = '&';	# http form data style, but with lead/trail ampersand
+  my $pfile;
+
+  if(!exists($safe{"team_id"})) {
+    sendout( { body => mkephemeral(escapeforjson("What? No team?")) });
+  }
+  if(!exists($safe{"channel_id"})) {
+    sendout( { body => mkephemeral(escapeforjson("What? No channel?")) });
+  }
+  if(!exists($safe{"user_id"})) {
+    sendout( { body => mkephemeral(escapeforjson("What? No user?")) });
+  }
+
+  # also update in update_votes()
+  $pfile = "$polldata/" . poll_base_name() . ".$now";
+  $pdata .= 'channel_id=' . $safe{"channel_id"} . '&';
+  $pdata .= 'poll_user_id=' . $safe{"user_id"} . '&';
+  $pdata .= 'meal=' . encode($meal) . '&';
+  $pdata .= 'yes=0&';
+  $pdata .= 'meh=0&';
+  $pdata .= 'no=0&';
+  $pdata .= 'timestamp=0&';	# set on call back
+  $pdata .= 'response_url=' . encode($safe{"response_url"}) . '&';
+  $pdata .= 'token=' . $safe{"response_url"} . '&';
+  
+  if(!open(START, ">", $pfile)) {
+    sendout( { body => mkephemeral(escapeforjson("Polling closed today.")) });
+  }
+  print START $pdata;
+  close START;
+}
+
+sub poll_base_name {
+  my $team;
+  my $channel;
+
+  if(!exists($safe{"team_id"})) {
+    sendout( { body => mkephemeral(escapeforjson("What? No team?")) });
+  } else {
+    $team = $safe{"team_id"};
+  }
+  if(!exists($safe{"channel_id"})) {
+    sendout( { body => mkephemeral(escapeforjson("What? No channel?")) });
+  } else {
+    $channel = $safe{"channel_id"};
+  }
+
+  return ( $safe{"team_id"} . '.' . $safe{"channel_id"} );
+}
+
+# give each vote type some flavor, and handle plural needs
+sub wording {
+  my $cat = shift;
+  my $n   = shift;
+  my $extra = '';
+  my $plural = 's';
+
+  if(1 == $n) {
+    $plural = '';
+  }
+
+  if(0 == $n) {
+    $n = "No";
+    if($cat eq 'yes') { $extra = ' yet'; }
+    if($cat eq 'no' ) { $extra = ' at all'; }
+  }
+
+  if ($cat eq 'yes') { return "$n thumb$plural-up$extra."; }
+  if ($cat eq 'meh') { return "$n vote$plural$extra."; }
+  if ($cat eq 'no' ) { return "$n thumb$plural-down$extra."; }
+}
+
+# escape quotes and backslashes
+# enclose in quotes
+sub escapeforjson {
+  $_ = shift;
+  s,(["\\]),\\$1,g;
+  return qq("$_")
+}
+
+# mkchannel('"plain text"')
+# mkchannel('{ json: here }')
+# mkchannel({ body => '"param style"'})
+sub mkchannel {
+  my $bval = shift;
+  my $body;
+  if (ref($bval) eq 'HASH') {
+    $body = $$bval{body};
+  } else {
+    $body = $bval;
+  }
+  return qq( { "text": $body, "response_type": "in_channel" } );
+}
+
+# mkephemeral("plain text")
+# mkephemeral('{ json: here }')
+# mkephemeral({ body => "param style"})
+sub mkephemeral {
+  my $bval = shift;
+  my $body;
+  if (ref($bval) eq 'HASH') {
+    $body = $$bval{body};
+  } else {
+    $body = $bval;
+  }
+  return qq( { "text": $body, "response_type": "ephemeral" } );
+}
+
+# intended for 202 Accepted no body responses
+sub boring_response {
+  my $param = shift;
+  my $status = ($$param{"status"} or 202);
+  for (
+    "Status: $status",
+    "Server: Lunchbot 0.1",
+    "",
+  ) {
+    print
+  }
+  exit;
+}
+
+# intended for vast majority of responses
+sub sendout {
+  my $param = shift;
+
+  my $status = ($$param{"status"} or 200);
+  my $ctype  = ($$param{"content-type"} or "application/json");
+  my $body   = ($$param{"body"} or "Hello Dolly!");
+  my $size   = 2 + length($body);
+
+  for (
+    "Status: $status",
+    "Server: Lunchbot 0.1",
+    "Content-Type: $ctype",
+    "Content-Length: $size",
+    "",
+    $body
+  ) {
+    print
+  }
+  exit;
+}
+
+sub encode {
+  my $val = shift;
+  $val =~ s!([^\w/.-])!sprintf("%%%02x", ord($1))!ge;
+  return $val;
+}
+
+sub decode {
+  my $val = shift;
+  # + and % encoding, ugg
+  $val =~ s/[+]/ /g;
+  $val =~ s/%([A-Fa-f0-9][A-Fa-f0-9])/chr(hex($1))/ge;
+  return $val;
+}
+
+# sets %heads and $post (both contain TAINTED values)
+# sets %safe with untainted values
+sub parseheaders {
+  open(DEBUG, ">", "/tmp/lunch.out");
+  print DEBUG "";
+
+  while ( my ($k, $v) = each %ENV ) {
+    if ($k =~ /^(HTTP_\w+|PATH_INFO|QUERY_STRING)$/) {
+      $k = lc($1);	# untainted
+      $heads{$k} = $v;	# values all tainted
+      print DEBUG "$k: $v";
+    }
+  }
+
+  if (defined(($ENV{"CONTENT_LENGTH"}) and $ENV{"CONTENT_LENGTH"} =~ /^(\d+)$/)) {
+    my $l = $1; 	# not tainted
+    $post = '';
+    # cap input at 10k bytes
+    if ($l < 10000) {
+      my $g = read(STDIN, $post, $l, 0);
+      if ($g != $l) {
+	print DEBUG "SHORT READ";
+        # short read
+	$post .= "_" x ($l - $g);
+      }
+    }
+    print DEBUG $post;
+
+    parse_post();
+  }
+
+  close DEBUG;
+}
+
+# sets %safe with untainted values
+# sets $payload with TAINTED values
+#    called for parsing CGI params *and* for parsing poll data
+#    poll data may overwrite values in $safe, but probably it's not overlapping
+sub parse_post {
+  $_ = "&$post&";	# tainted
+
+  open(DEBUG, ">", "/tmp/lunch.param");
+  # simple untaints
+  for my $key (qw{ token team_id team_domain enterprise_id enterprise_name
+                   channel_id channel_name user_id trigger_id poll_user_id
+		   yes meh no
+		 }) {
+    # cap values at 200 bytes
+    if (/&$key=([.\w-]{1,200})&/) {
+      $safe{$key} = $1;
+      print DEBUG "raw $key = $1";
+    }
+  }
+
+  # more complicated untaints
+  # command=%2Flunchbot&text=help+me
+  for my $key (qw{ response_url command text meal }) {
+    if (m#&$key=([+:%/.\w-]{1,200})&#) {
+      $safe{$key} = decode($1);
+      print DEBUG "decode $key = $safe{$key}";
+    }
+  }
+
+  # stored comments
+  # relies on slack user_id values always starting with U
+  # comment-magic-value
+  while ( m#&(comment_U\w+)=([+:%/.\w-]{1,200})&#g ) {
+    my $k = $1;
+    $safe{$k} = decode($2);
+    print DEBUG "comment $k = $safe{$k}";
+  }
+
+  # stored votes
+  # relies on slack user_id values always starting with U
+  while ( m#&(vote_U\w+)=(\w{2,3})&#g ) {
+    $safe{$1} = $2;
+    print DEBUG "comment $1 = $safe{$1}";
+  }
+
+  # payload is what we get when someone clicks on a button
+  # keep tainted, but untaint some subparts
+  if (m#&payload=[^&]*&#) {
+    my $json = $_;
+    $json =~ s,.*?&payload=,,;
+    $json =~ s,&.*,,;
+    $json = decode($json);
+    print DEBUG "JSON $json";
+    eval { $payload = decode_json($json); };
+    print DEBUG "PAYLOAD: " . Dumper($payload);
+
+    if(ref($payload) eq 'HASH') {
+      $safe{"have payload"} = 1;
+    } else {
+      close DEBUG;
+      return;
+    }
+
+    # hash -> array -> hash
+    if(exists($$payload{"actions"}) and exists(${$$payload{"actions"}}[0]{"action_id"})) {
+      if(${$$payload{"actions"}}[0]{"action_id"} =~ /^v:(yes|no|meh)/) {
+        $safe{"text"} = "v:$1";		# untainted
+        print DEBUG "  --> payload v:$1";
+      }
+    }
+
+    # hash -> hash
+    if(exists($$payload{"team"}) and exists(${$$payload{"team"}}{"id"})) {
+      if(${$$payload{"team"}}{"id"} =~ /^(\w+)$/) {
+        $safe{"team_id"} = "$1";		# untainted
+        print DEBUG "  --> payload team $1";
+      }
+    }
+
+    # hash -> hash
+    if(exists($$payload{"channel"}) and exists(${$$payload{"channel"}}{"id"})) {
+      if(${$$payload{"channel"}}{"id"} =~ /^(\w+)$/) {
+        $safe{"channel_id"} = "$1";		# untainted
+        print DEBUG "  --> payload channel $1";
+      }
+    }
+
+    # hash -> hash
+    if(exists($$payload{"user"}) and exists(${$$payload{"user"}}{"id"})) {
+      if(${$$payload{"user"}}{"id"} =~ /^(\w+)$/) {
+        $safe{"user_id"} = "$1";		# untainted
+        print DEBUG "  --> payload user $1";
+      }
+    }
+
+    # hash -> hash
+    if(exists($$payload{"message"}) and exists(${$$payload{"message"}}{"ts"})) {
+      if(${$$payload{"message"}}{"ts"} =~ /^(\d+[.\d]*)$/) {
+        $safe{"timestamp"} = "$1";		# untainted
+        print DEBUG "  --> payload ts $1";
+      }
+    }
+
+    # hash
+    if(exists($$payload{"token"})) {
+      if($$payload{"token"} =~ /^([.\w]+)$/) {
+        $safe{"token"} = "$1";		# untainted
+        print DEBUG "  --> payload token $1";
+      }
+    }
+  } # operations on the payload value
+
+  close DEBUG;
+}
+

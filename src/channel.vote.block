@@ -1,0 +1,102 @@
+{
+  "blocks": [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "What did *you* think of [[MEAL]]? (Poll from <@UTnotreal>)"
+      }
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": ":+1: Oh yeah, that was good"
+      },
+      "accessory": {
+        "type": "button",
+        "text": {
+          "type": "plain_text",
+          "emoji": true,
+          "text": "Liked it"
+        },
+        "value": "good",
+	"action_id": "v:yes"
+      }
+    },
+    {
+      "type": "context", "elements": [
+            {
+          "type": "plain_text",
+          "emoji": true,
+          "text": "[[YES_VOTES]]"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": ":no_mouth:: Meh"
+      },
+      "accessory": {
+        "type": "button",
+        "text": {
+          "type": "plain_text",
+          "emoji": true,
+          "text": "Whatever"
+        },
+        "value": "meh",
+	"action_id": "v:meh"
+      }
+    },
+    {
+      "type": "context", "elements": [
+        {
+          "type": "plain_text",
+          "emoji": true,
+          "text": "[[MEH_VOTES]]"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": ":-1: Should have found a food truck."
+      },
+      "accessory": {
+        "type": "button",
+        "text": {
+          "type": "plain_text",
+          "emoji": true,
+          "text": "Disliked"
+        },
+        "value": "bad",
+	"action_id": "v:no"
+      }
+    },
+    {
+      "type": "context", "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "[[NO_VOTES]]"
+        }
+      ]
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Leave anonynous comments with `/lunchbot comment Your thoughts`.[[COMMENTS]]"
+      }
+    }
+  ],
+   "response_type": "in_channel"
+}
